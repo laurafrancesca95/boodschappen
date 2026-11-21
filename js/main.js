@@ -206,7 +206,7 @@ function viewRecipes() {
     <div class="btns">
       <button data-action="import-link">${icon('link', 'sm')}Plak link</button>
       <button data-action="import-photo">${icon('cam', 'sm')}Foto</button>
-      <button data-action="import-manual">${icon('pen', 'sm')}Zelf typen</button>
+      <button data-action="import-text">${icon('text', 'sm')}Tekst</button>
     </div>
   </div>
   <div id="rgrid">${recipeGrid()}</div>`;
@@ -217,7 +217,7 @@ function addRecipeSheet() {
     <div class="menu-list">
       <button data-do="link">${icon('link')}<span><b>Plak een link</b><small>Van een receptensite, bijv. Allerhande of Leuke Recepten</small></span></button>
       <button data-do="photo">${icon('cam')}<span><b>Foto van een recept</b><small>Uit een kookboek of tijdschrift, de app leest de tekst</small></span></button>
-      <button data-do="text">${icon('text')}<span><b>Tekst plakken</b><small>Gekopieerd uit een app, mail of bericht</small></span></button>
+      <button data-do="text">${icon('text')}<span><b>Tekst plakken</b><small>Gekopieerd uit een app, mail of bericht. Tip: in de Galerij kopieer je met de T-knop de tekst van een foto, dat werkt vaak het best.</small></span></button>
       <button data-do="manual">${icon('pen')}<span><b>Zelf typen</b><small>Een eigen of familierecept</small></span></button>
     </div>`);
   s.addEventListener('click', (e) => {
@@ -242,10 +242,11 @@ function linkSheet(prefill = '') {
   const run = async () => {
     const url = extractUrl(input.value) || input.value.trim();
     if (!/^https?:\/\//.test(url)) { status.hidden = false; status.className = 'status err'; status.textContent = 'Dit lijkt geen link. Begint hij met https://?'; return; }
-    status.hidden = false; status.className = 'status busy'; status.innerHTML = `<span class="spinner"></span>Recept ophalen...`;
+    status.hidden = false; status.className = 'status busy'; status.innerHTML = `<span class="spinner"></span><span id="st-txt">Recept ophalen...</span>`;
     s.querySelector('[data-go]').disabled = true;
+    const slow = setTimeout(() => { const t = s.querySelector('#st-txt'); if (t) t.textContent = 'Dit duurt even, we proberen een paar routes...'; }, 5000);
     try {
-      const rec = await importFromUrl(url);
+      const rec = await importFromUrl(url).finally(() => clearTimeout(slow));
       closeSheet();
       startDraft({ ...rec, ingredients: rec.ingredients, steps: rec.steps }, rec.partial
         ? 'Op deze pagina stond geen herkenbaar recept. Titel en foto zijn overgenomen; vul de rest aan of plak de tekst.'
@@ -280,7 +281,7 @@ function pickPhoto() {
   inp.onchange = async () => {
     const file = inp.files?.[0]; if (!file) return;
     const s = openSheet(`<h3 class="sheet-title">Foto lezen</h3>
-      <p class="muted">De tekst op de foto wordt herkend. De eerste keer duurt dit wat langer, omdat de Nederlandse taalbestanden worden geladen.</p>
+      <p class="muted">De tekst op de foto wordt herkend. De eerste keer duurt dit wat langer, omdat de Nederlandse taalbestanden worden geladen. Een recht van boven genomen foto met goed licht werkt het best.</p>
       <div class="prog"><div class="bar"><i style="width:4%"></i></div><small id="ocr-st">Voorbereiden...</small></div>`);
     const bar = s.querySelector('.bar i'), st = s.querySelector('#ocr-st');
     try {
@@ -291,8 +292,8 @@ function pickPhoto() {
       const parsed = parseRecipeText(text);
       closeSheet();
       setTimeout(() => startDraft({ ...parsed, image: img }, parsed.ingredients.length
-        ? 'Tekst gelezen. Tekstherkenning maakt soms foutjes, dus kijk het even na.'
-        : 'Er is weinig herkend. Controleer de tekst of typ de ingrediënten zelf.'), 230);
+        ? 'Tekst gelezen. Tekstherkenning maakt soms foutjes, dus kijk het even na. Lukt het slecht? Open de foto in de Galerij, tik op de T-knop, kopieer de tekst en kies Tekst plakken.'
+        : 'Er is weinig herkend. Tip: open de foto in de Galerij, tik op de T-knop om de tekst te kopiëren en kies bij Recept toevoegen voor Tekst plakken.'), 230);
     } catch (err) {
       st.textContent = err.message || 'Er ging iets mis bij het lezen.';
       st.classList.add('err');
@@ -533,6 +534,7 @@ const actions = {
   'import-link': () => linkSheet(),
   'import-photo': pickPhoto,
   'import-manual': () => startDraft({}),
+  'import-text': () => textSheet(),
   plan: (el) => planSheet(el.dataset.id),
   'delete-recipe': async (el) => {
     const r = store.state.recipes[el.dataset.id];
