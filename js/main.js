@@ -7,6 +7,8 @@ import {
 import { parseLine, fmtQty, categorize, CATEGORIES, coreName } from './ingredients.js';
 import { importFromUrl, parseRecipeText, ocrImage, shrinkImage, extractUrl } from './importer.js';
 import { seed } from './seed.js';
+import { firebaseConfig } from './firebase-config.js';
+import { cloud, startCloud, cloudCard, cloudActions, refreshInfo } from './account.js';
 
 const TAGS = ['Snel', 'Vega', 'Soep', 'Oven', 'Pasta', 'Salade', 'Vis', 'Kids'];
 const ui = { weekStart: startOfWeek(), search: '', tag: 'Alles', draft: null, wide: false };
@@ -512,9 +514,12 @@ function viewPantry() {
   </form>
   <div class="pantry-chips">${items.map((p) => `<span class="pchip">${esc(p.name)}<button data-action="del-pantry" data-id="${p.id}" aria-label="Verwijder ${esc(p.name)}">${icon('x', 'xs')}</button></span>`).join('') || '<p class="muted">Nog leeg.</p>'}</div>
 
+  ${cloudCard()}
   <section class="card settings">
     <h2>Gegevens</h2>
-    <p class="muted">In deze testversie staat alles alleen op dit toestel (${nRec} recepten). Samen live werken met een login komt in de volgende stap. Tot die tijd kun je met een back-up recepten overzetten naar je tablet.</p>
+    <p class="muted">${cloud.on
+      ? `Alles wordt live gedeeld (${nRec} recepten). Een back-up is een extra kopie voor de zekerheid.`
+      : `Alles staat nu alleen op dit toestel (${nRec} recepten). Met een back-up kun je recepten overzetten naar een ander toestel.`}</p>
     <div class="row-btns left wrap">
       <button class="btn ghost small" data-action="backup">${icon('save', 'sm')}Back-up opslaan</button>
       <button class="btn ghost small" data-action="restore">${icon('upload', 'sm')}Back-up terugzetten</button>
@@ -525,6 +530,7 @@ function viewPantry() {
 
 // ===================== Acties =====================
 const actions = {
+  ...cloudActions,
   week: (el) => { const d = +el.dataset.d; ui.weekStart = d === 0 ? startOfWeek() : addDays(ui.weekStart, d * 7); render(); },
   pick: (el) => pickRecipeSheet((p) => addEntry(el.dataset.date, p)),
   entry: (el) => entrySheet(el.dataset.date, el.dataset.entry),
@@ -633,7 +639,7 @@ function bind() {
   document.addEventListener('input', (e) => {
     if (e.target.id === 'rq') { ui.search = e.target.value; document.getElementById('rgrid').innerHTML = recipeGrid(); }
   });
-  window.addEventListener('hashchange', () => { if (sheetOpen()) closeSheet(true); render(); });
+  window.addEventListener('hashchange', () => { if (sheetOpen()) closeSheet(true); render(); if (route().name === 'voorraad') refreshInfo(render); });
   wideMQ.addEventListener('change', render);
   store.subscribe(() => { if (route().name !== 'bewerk') render(); });
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; if (route().name === 'voorraad') render(); });
@@ -642,7 +648,6 @@ function bind() {
 function shell() {
   const tabs = [['week', 'cal', 'Weekmenu'], ['recepten', 'book', 'Recepten'], ['lijst', 'list', 'Lijst'], ['voorraad', 'jar', 'Voorraad']];
   const links = tabs.map(([t, ic, l]) => `<a href="#/${t}" data-tab="${t}"><span class="ic">${icon(ic)}</span>${l}</a>`).join('');
-  document.body.insertAdjacentHTML('afterbegin', ICONS);
   document.getElementById('app').innerHTML = `
     <nav class="rail" aria-label="Menu"><div class="logo">B</div>${links}</nav>
     <main id="view" tabindex="-1"></main>
@@ -661,11 +666,25 @@ async function handleShare() {
 }
 
 async function start() {
+  document.body.insertAdjacentHTML('afterbegin', ICONS);
+  if (firebaseConfig || self.__BOODSCHAPPEN_TEST__) {
+    try {
+      await startCloud(firebaseConfig);
+    } catch (e) {
+      console.error(e);
+      document.getElementById('app').innerHTML = `<main class="gate"><div class="gate-card"><div class="gate-logo">B</div>
+        <h1>Even geen verbinding</h1><p class="lede">De app kon de online gegevens niet laden. Controleer je internet en probeer het opnieuw.</p>
+        <button class="btn wide" onclick="location.reload()">Opnieuw proberen</button></div></main>`;
+      return;
+    }
+  } else {
+    await store.init();
+    if (!store.state.meta.seeded) await seed(store);
+  }
   shell();
-  await store.init();
-  if (!store.state.meta.seeded) await seed(store);
   bind();
   render();
+  refreshInfo(render);
   handleShare();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
