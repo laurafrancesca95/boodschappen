@@ -350,3 +350,5 @@ textarea { resize: vertical; line-height: 1.5; }
 }
 .code-row { display: flex; align-items: baseline; gap: 10px; }
 .code-small { letter-spacing: .08em; color: var(--p-deep); user-select: all; }
+/* Inlog- en huishoudscherm over de volle breedte, ook op desktop (waar .app een raster met kolommen is) */
+.app > .gate { grid-column: 1 / -1; grid-row: 1 / -1; }

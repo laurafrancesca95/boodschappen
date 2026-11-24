@@ -1,5 +1,5 @@
 // Service worker: laat de app ook zonder internet openen.
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/store.js', './js/model.js', './js/ui.js', './js/ingredients.js', './js/importer.js', './js/seed.js', './js/account.js', './js/cloud.js', './js/firebase-config.js',
