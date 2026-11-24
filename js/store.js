@@ -1,8 +1,8 @@
 // Gegevenslaag.
 //
 // De app praat alleen met `store`. Waar de gegevens echt staan, regelt een "adapter".
-// Nu: LocalAdapter (IndexedDB op dit toestel). Later: een online adapter (bijv. Supabase of
-// Firebase) met dezelfde vier functies, zodat jullie live samen in hetzelfde weekmenu werken.
+// LocalAdapter: IndexedDB op dit toestel (zonder account).
+// CloudAdapter (js/cloud.js): Firebase, zodat jullie live samen in hetzelfde huishouden werken.
 //
 // Adapter-interface:
 //   load()                 -> Promise<{ [collection]: data }>
@@ -27,7 +27,7 @@ export const DEFAULTS = () => ({
   meta: { seeded: false, version: 1 },
 });
 
-class LocalAdapter {
+export class LocalAdapter {
   constructor() { this.dbp = null; }
   open() {
     if (this.dbp) return this.dbp;
@@ -74,14 +74,17 @@ class LocalAdapter {
   subscribe() { /* lokaal: niets te doen */ }
 }
 
-function createStore(adapter) {
+function createStore() {
+  let adapter = null;
   let state = DEFAULTS();
   const listeners = new Set();
   const notify = (c) => listeners.forEach((fn) => fn(c));
 
   return {
     get state() { return state; },
-    async init() {
+    get adapter() { return adapter; },
+    async init(a = new LocalAdapter()) {
+      adapter = a;
       const loaded = await adapter.load();
       state = { ...DEFAULTS(), ...loaded };
       state.list = { ...DEFAULTS().list, ...state.list };
@@ -110,6 +113,6 @@ function createStore(adapter) {
   };
 }
 
-export const store = createStore(new LocalAdapter());
+export const store = createStore();
 
 export const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));

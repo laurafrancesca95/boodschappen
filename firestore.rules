@@ -1,0 +1,40 @@
+rules_version = '2';
+// Beveiligingsregels voor de boodschappen-app.
+// Plak dit in Firebase > Firestore Database > Regels en klik op Publiceren.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isMember(hid) {
+      return signedIn() && request.auth.uid in get(/databases/$(database)/documents/households/$(hid)).data.members;
+    }
+
+    // Eigen profiel: welk huishouden hoort bij mij
+    match /users/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /households/{hid} {
+      allow get: if signedIn() && request.auth.uid in resource.data.members;
+      allow list: if false;
+      // Nieuw huishouden: alleen jezelf als lid
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['members', 'emails', 'createdAt'])
+        && request.resource.data.members == [request.auth.uid]
+        && request.resource.data.emails.keys().hasOnly([request.auth.uid]);
+      // Leden mogen alles aanpassen; wie de code kent mag alleen zichzelf toevoegen
+      allow update: if signedIn() && (
+        request.auth.uid in resource.data.members || (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'emails'])
+          && request.resource.data.members == resource.data.members.concat([request.auth.uid])
+          && request.resource.data.emails.diff(resource.data.emails).affectedKeys().hasOnly([request.auth.uid])
+        )
+      );
+      allow delete: if false;
+
+      // Recepten, weekmenu, lijst en voorraadkast: alleen voor leden
+      match /{coll}/{doc} {
+        allow read, write: if isMember(hid);
+      }
+    }
+  }
+}
