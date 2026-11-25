@@ -97,3 +97,6 @@ export function confirmSheet(title, text, okLabel = 'Verwijderen') {
     obs.observe(document.body, { childList: true });
   });
 }
+
+// Logo: kookpannetje met hartje (wit op de terracotta tegel)
+export const LOGO = '<svg viewBox="60 60 392 392" aria-hidden="true"><g transform="translate(0 14)"><rect x="120" y="226" width="272" height="30" rx="15" fill="#FFFFFF"/><rect x="232" y="200" width="48" height="30" rx="12" fill="#FFFFFF"/><path d="M142 270h228v66a64 64 0 0 1-64 64H206a64 64 0 0 1-64-64z" fill="#FFFFFF"/><rect x="96" y="282" width="56" height="26" rx="13" fill="#FFFFFF"/><rect x="360" y="282" width="56" height="26" rx="13" fill="#FFFFFF"/><path transform="translate(256 128) scale(1.05)" d="M0 46c-34-22-56-40-56-64 0-17 13-30 29-30 12 0 21 7 27 17 6-10 15-17 27-17 16 0 29 13 29 30 0 24-22 42-56 64z" fill="#F8DED8"/></g></svg>';
