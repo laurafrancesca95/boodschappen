@@ -1,6 +1,6 @@
 // Inloggen, huishouden kiezen en de "Samen"-kaart op het Voorraad-scherm.
 import { store, LocalAdapter } from './store.js';
-import { esc, icon, toast, openSheet, closeSheet, confirmSheet } from './ui.js';
+import { esc, icon, LOGO, toast, openSheet, closeSheet, confirmSheet } from './ui.js';
 import { seed } from './seed.js';
 
 let C = null; // cloud.js
@@ -26,7 +26,7 @@ const ls = {
 function gate(html) {
   const app = document.getElementById('app');
   app.innerHTML = `<main class="gate"><div class="gate-card">
-    <div class="gate-logo">B</div>${html}</div></main>`;
+    <div class="gate-logo">${LOGO}</div>${html}</div></main>`;
   return app.querySelector('.gate-card');
 }
 const busy = (form, on) => form.querySelectorAll('button, input').forEach((b) => { b.disabled = on; });

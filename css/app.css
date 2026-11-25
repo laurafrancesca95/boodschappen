@@ -59,6 +59,7 @@ p { margin: 0; }
     background: var(--surface); border-right: 1px solid var(--ln);
   }
   .rail .logo { width: 46px; height: 46px; border-radius: var(--radius-sm); background: var(--p); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 20px; margin-bottom: 6px; }
+  .rail .logo svg { width: 100%; height: 100%; }
   #view { padding: 28px 28px 40px; }
   #side:not([hidden]) {
     display: flex; flex-direction: column; gap: 14px; width: 380px; overflow-y: auto;
@@ -332,6 +333,7 @@ textarea { resize: vertical; line-height: 1.5; }
   width: 56px; height: 56px; border-radius: 18px; background: var(--p); color: #fff; display: grid; place-items: center;
   font-weight: 700; font-size: 26px; box-shadow: 0 6px 14px rgba(194, 83, 75, .3);
 }
+.gate-logo svg { width: 100%; height: 100%; }
 .gate-form { display: flex; flex-direction: column; gap: 10px; }
 .gate-err { background: var(--t2); color: var(--p-deep); border-radius: 12px; padding: 10px 12px; font-size: 14px; }
 .gate-err.good { background: var(--t3); color: var(--sage-ink); }

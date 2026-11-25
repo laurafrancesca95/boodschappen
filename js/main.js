@@ -1,5 +1,5 @@
 import { store, uid } from './store.js';
-import { esc, icon, ICONS, thumb, openSheet, closeSheet, toast, confirmSheet, sheetOpen } from './ui.js';
+import { esc, icon, LOGO, ICONS, thumb, openSheet, closeSheet, toast, confirmSheet, sheetOpen } from './ui.js';
 import {
   DAY_SHORT, DAY_LONG, dateKey, fromKey, todayKey, startOfWeek, addDays, weekDays, weekLabel, relWeek,
   fmtMinutes, computeList, isPantry, togglePantry,
@@ -649,7 +649,7 @@ function shell() {
   const tabs = [['week', 'cal', 'Weekmenu'], ['recepten', 'book', 'Recepten'], ['lijst', 'list', 'Lijst'], ['voorraad', 'jar', 'Voorraad']];
   const links = tabs.map(([t, ic, l]) => `<a href="#/${t}" data-tab="${t}"><span class="ic">${icon(ic)}</span>${l}</a>`).join('');
   document.getElementById('app').innerHTML = `
-    <nav class="rail" aria-label="Menu"><div class="logo">B</div>${links}</nav>
+    <nav class="rail" aria-label="Menu"><div class="logo" aria-label="Boodschappen">${LOGO}</div>${links}</nav>
     <main id="view" tabindex="-1"></main>
     <aside id="side" hidden></aside>
     <nav class="nav" aria-label="Menu">${links}</nav>`;
@@ -672,7 +672,7 @@ async function start() {
       await startCloud(firebaseConfig);
     } catch (e) {
       console.error(e);
-      document.getElementById('app').innerHTML = `<main class="gate"><div class="gate-card"><div class="gate-logo">B</div>
+      document.getElementById('app').innerHTML = `<main class="gate"><div class="gate-card"><div class="gate-logo">${LOGO}</div>
         <h1>Even geen verbinding</h1><p class="lede">De app kon de online gegevens niet laden. Controleer je internet en probeer het opnieuw.</p>
         <button class="btn wide" onclick="location.reload()">Opnieuw proberen</button></div></main>`;
       return;
