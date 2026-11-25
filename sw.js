@@ -1,5 +1,5 @@
 // Service worker: laat de app ook zonder internet openen.
-const VERSION = 'v6';
+const VERSION = 'v7';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './css/app.css',
   './js/main.js', './js/store.js', './js/model.js', './js/ui.js', './js/ingredients.js', './js/importer.js', './js/seed.js', './js/account.js', './js/cloud.js', './js/firebase-config.js',
@@ -29,10 +29,11 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (url.origin !== location.origin) return;
-  // Eigen bestanden: eerst het netwerk (zo krijg je updates), anders uit de cache
+  // Eigen bestanden: eerst het netwerk (zo krijg je updates), anders uit de cache.
+  // 'no-cache' = altijd even bij de server navragen, ook als de browser nog een kopie heeft.
   const key = req.mode === 'navigate' ? './index.html' : req;
   e.respondWith(
-    fetch(req).then((r) => {
+    fetch(req.mode === 'navigate' ? req.url : req, { cache: 'no-cache' }).then((r) => {
       if (r.ok) { const copy = r.clone(); caches.open(VERSION).then((c) => c.put(key, copy)); }
       return r;
     }).catch(() => caches.match(key, { ignoreSearch: true }))

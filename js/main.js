@@ -11,6 +11,14 @@ import { firebaseConfig } from './firebase-config.js';
 import { cloud, startCloud, cloudCard, cloudActions, refreshInfo } from './account.js';
 
 const TAGS = ['Snel', 'Vega', 'Soep', 'Oven', 'Pasta', 'Salade', 'Vis', 'Kids'];
+/** De receptfilters van het huishouden. Zolang niemand ze heeft aangepast: de standaardlijst + wat recepten al hebben. */
+function allTags() {
+  if (Array.isArray(store.state.tags)) return store.state.tags;
+  const used = new Set(Object.values(store.state.recipes).flatMap((r) => r.tags || []));
+  return [...TAGS, ...[...used].filter((t) => !TAGS.includes(t)).sort((a, b) => a.localeCompare(b, 'nl'))];
+}
+const sameTag = (a, b) => a.toLocaleLowerCase('nl') === b.toLocaleLowerCase('nl');
+const cleanTag = (v) => { const t = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 30); return t && t.charAt(0).toLocaleUpperCase('nl') + t.slice(1); };
 const ui = { weekStart: startOfWeek(), search: '', tag: 'Alles', draft: null, wide: false };
 const $view = () => document.getElementById('view');
 const $side = () => document.getElementById('side');
@@ -194,15 +202,15 @@ function recipeGrid() {
 
 function viewRecipes() {
   const recipes = Object.values(store.state.recipes);
-  const used = new Set(recipes.flatMap((r) => r.tags || []));
-  const tags = ['Alles', ...TAGS.filter((t) => t === 'Snel' || used.has(t)), ...[...used].filter((t) => !TAGS.includes(t))];
+  if (ui.tag !== 'Alles' && !allTags().includes(ui.tag)) ui.tag = 'Alles';
+  const tags = ['Alles', ...allTags()];
   return `
   <header class="ah">
     <div><div class="eb">${recipes.length} ${recipes.length === 1 ? 'recept' : 'recepten'}</div><h1>Recepten</h1></div>
     <button class="roundbtn" data-action="add-recipe" aria-label="Recept toevoegen">${icon('plus')}</button>
   </header>
   <label class="search">${icon('search', 'sm')}<input id="rq" type="search" placeholder="Zoek recept of ingrediënt" value="${esc(ui.search)}" autocomplete="off"></label>
-  <div class="chips">${tags.map((t) => `<button class="chip ${t === ui.tag ? 'on' : ''}" data-action="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+  <div class="chips">${tags.map((t) => `<button class="chip ${t === ui.tag ? 'on' : ''}" data-action="tag" data-tag="${esc(t)}">${esc(t)}</button>`).join('')}<button class="chip manage" data-action="manage-tags">${icon('pen', 'xs')}Filters</button></div>
   <div class="import">
     <b>Nieuw recept toevoegen</b>
     <div class="btns">
@@ -401,8 +409,9 @@ function viewEditor({ id }) {
       <label class="fld"><span>Tijd (minuten)</span><input name="minutes" type="number" inputmode="numeric" min="0" value="${r.minutes || ''}"></label>
       <label class="fld"><span>Personen</span><input name="servings" type="number" inputmode="numeric" min="1" value="${r.servings || ''}"></label>
     </div>
-    <div class="fld"><span>Labels</span>
-      <div class="chips wrap">${[...new Set([...TAGS, ...tagSet])].map((t) => `<label class="chip toggle"><input type="checkbox" name="tag" value="${esc(t)}" ${tagSet.has(t) ? 'checked' : ''}>${esc(t)}</label>`).join('')}</div>
+    <div class="fld"><span>Filters <small>tik aan waar dit recept bij hoort</small></span>
+      <div class="chips wrap" id="ed-tags">${[...new Set([...allTags(), ...tagSet])].map(tagToggle(tagSet)).join('')}
+        <span class="chip-add"><input id="ed-newtag" placeholder="+ Nieuw filter" maxlength="30" autocomplete="off" enterkeyhint="done" aria-label="Nieuw filter"><button type="button" class="chip manage" data-action="ed-addtag" hidden>Toevoegen</button></span></div>
     </div>
     <label class="fld"><span>Ingrediënten <small>één per regel, bijv. "200 g feta"</small></span>
       <textarea name="ingredients" rows="${Math.max(6, (r.ingredients || []).length + 1)}">${esc((r.ingredients || []).join('\n'))}</textarea></label>
@@ -411,6 +420,100 @@ function viewEditor({ id }) {
     <label class="fld"><span>Bron (link)</span><input name="source" type="url" value="${esc(r.source || '')}" placeholder="https://..."></label>
     <div class="row-btns sticky"><a class="btn ghost" href="${isNew ? '#/recepten' : `#/recept/${esc(id)}`}">Annuleren</a><button class="btn" type="submit">${icon('check', 'sm')}Opslaan</button></div>
   </form>`;
+}
+
+const tagToggle = (set) => (t) => `<label class="chip toggle"><input type="checkbox" name="tag" value="${esc(t)}" ${set.has(t) ? 'checked' : ''}>${esc(t)}</label>`;
+
+/** Nieuw filter vanuit het recept: meteen aangevinkt, en ook bewaard voor andere recepten. */
+function editorAddTag() {
+  const inp = document.getElementById('ed-newtag');
+  const t = cleanTag(inp?.value);
+  if (!t) return;
+  const box = document.getElementById('ed-tags');
+  const have = [...box.querySelectorAll('input[name=tag]')].find((x) => sameTag(x.value, t));
+  if (have) have.checked = true;
+  else {
+    inp.parentElement.insertAdjacentHTML('beforebegin', tagToggle(new Set([t]))(t));
+    if (!allTags().some((x) => sameTag(x, t))) store.update('tags', () => [...allTags(), t]);
+  }
+  inp.value = '';
+  inp.nextElementSibling.hidden = true;
+  inp.focus();
+}
+
+// ---------- Filters beheren ----------
+function tagsSheet() {
+  let editing = null, deleting = null;
+  const s = openSheet('<div id="tags-body" class="sheet-body"></div>');
+  const body = s.querySelector('#tags-body');
+  const count = (t) => Object.values(store.state.recipes).filter((r) => (r.tags || []).includes(t)).length;
+  const draw = () => {
+    const tags = allTags();
+    body.innerHTML = `
+      <h3 class="sheet-title">Filters voor recepten</h3>
+      <p class="muted">Deze filters staan boven je recepten. Bij een recept tik je aan waar het bij hoort (via Wijzigen). ${cloud.on ? 'Ze zijn gedeeld met je huishouden.' : ''}</p>
+      <form class="addrow" id="tag-add">
+        <input id="tag-new" placeholder="Nieuw filter, bijv. Smoothie" maxlength="30" autocomplete="off" enterkeyhint="done">
+        <button class="btn small" type="submit" aria-label="Filter toevoegen">${icon('plus', 'sm')}</button>
+      </form>
+      <div class="tag-rows">${tags.map((t, i) => {
+        const n = count(t);
+        if (deleting === t) return `<div class="tag-row ask"><span class="nm"><b>${esc(t)} verwijderen?</b><small>Wordt weggehaald bij ${n === 1 ? '1 recept' : `${n} recepten`}. De recepten zelf blijven.</small></span>
+          <button type="button" data-cancel aria-label="Niet verwijderen">${icon('x', 'sm')}</button>
+          <button type="button" class="danger" data-delok="${i}" aria-label="Ja, ${esc(t)} verwijderen">${icon('trash', 'sm')}</button></div>`;
+        if (editing === t) return `<div class="tag-row"><form data-rename="${i}"><input value="${esc(t)}" maxlength="30" aria-label="Nieuwe naam" enterkeyhint="done"><button type="submit" class="ok" aria-label="Opslaan">${icon('check', 'sm')}</button></form><button type="button" data-cancel aria-label="Annuleren">${icon('x', 'sm')}</button></div>`;
+        return `<div class="tag-row"><span class="nm"><b>${esc(t)}</b><small>${n === 1 ? '1 recept' : `${n} recepten`}${t === 'Snel' ? ' · plus alles tot 30 min' : ''}</small></span>
+          <button type="button" data-ren="${i}" aria-label="${esc(t)} hernoemen">${icon('pen', 'sm')}</button>
+          <button type="button" data-del="${i}" aria-label="${esc(t)} verwijderen">${icon('trash', 'sm')}</button></div>`;
+      }).join('') || '<p class="muted pad">Nog geen filters.</p>'}</div>
+      <div class="row-btns"><button class="btn" data-close>Klaar</button></div>`;
+    const ed = body.querySelector('[data-rename] input');
+    if (ed) { ed.focus(); ed.select(); }
+  };
+  const add = () => {
+    const inp = body.querySelector('#tag-new');
+    const t = cleanTag(inp.value);
+    if (!t) return;
+    if (allTags().some((x) => sameTag(x, t))) { toast(`${t} bestaat al`); return; }
+    store.update('tags', () => [...allTags(), t]);
+    draw();
+    body.querySelector('#tag-new').focus();
+    toast(`${t} toegevoegd. Tik het nu aan bij de recepten waar het bij hoort.`);
+  };
+  const rename = (i, val) => {
+    const old = allTags()[i];
+    const t = cleanTag(val);
+    editing = null;
+    if (!t || t === old) return draw();
+    if (allTags().some((x, j) => j !== i && sameTag(x, t))) { toast(`${t} bestaat al`); return draw(); }
+    store.update('tags', () => allTags().map((x, j) => (j === i ? t : x)));
+    store.update('recipes', (rs) => { for (const r of Object.values(rs)) if ((r.tags || []).includes(old)) r.tags = r.tags.map((x) => (x === old ? t : x)); });
+    if (ui.tag === old) ui.tag = t;
+    draw();
+  };
+  const remove = (i) => {
+    const t = allTags()[i];
+    const n = count(t);
+    deleting = null;
+    store.update('tags', () => allTags().filter((x) => x !== t));
+    if (n) store.update('recipes', (rs) => { for (const r of Object.values(rs)) if ((r.tags || []).includes(t)) r.tags = r.tags.filter((x) => x !== t); });
+    draw();
+    toast(`${t} verwijderd`);
+  };
+  body.addEventListener('submit', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (e.target.id === 'tag-add') add();
+    else if (e.target.dataset.rename != null) rename(+e.target.dataset.rename, e.target.querySelector('input').value);
+  });
+  body.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.ren != null) { editing = allTags()[+b.dataset.ren]; deleting = null; draw(); }
+    else if (b.dataset.del != null) { const t = allTags()[+b.dataset.del]; editing = null; if (count(t)) { deleting = t; draw(); } else remove(+b.dataset.del); }
+    else if (b.dataset.delok != null) remove(+b.dataset.delok);
+    else if (b.hasAttribute('data-cancel')) { editing = null; deleting = null; draw(); }
+  });
+  body.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (editing || deleting)) { e.stopPropagation(); editing = null; deleting = null; draw(); } });
+  draw();
 }
 
 function readEditor(form) {
@@ -514,6 +617,13 @@ function viewPantry() {
   </form>
   <div class="pantry-chips">${items.map((p) => `<span class="pchip">${esc(p.name)}<button data-action="del-pantry" data-id="${p.id}" aria-label="Verwijder ${esc(p.name)}">${icon('x', 'xs')}</button></span>`).join('') || '<p class="muted">Nog leeg.</p>'}</div>
 
+  <section class="card settings">
+    <h2>Filters voor recepten</h2>
+    <p class="muted">Zelf filters maken, hernoemen of weghalen, zoals Ontbijt, Smoothie of Tussendoortje.</p>
+    <div class="tag-preview">${allTags().map((t) => `<span class="tagpill">${esc(t)}</span>`).join('')}</div>
+    <div class="row-btns left"><button class="btn ghost small" data-action="manage-tags">${icon('pen', 'sm')}Filters beheren</button></div>
+  </section>
+
   ${cloudCard()}
   <section class="card settings">
     <h2>Gegevens</h2>
@@ -536,6 +646,8 @@ const actions = {
   entry: (el) => entrySheet(el.dataset.date, el.dataset.entry),
   'make-list': makeList,
   tag: (el) => { ui.tag = el.dataset.tag; render(); },
+  'manage-tags': () => tagsSheet(),
+  'ed-addtag': () => editorAddTag(),
   'add-recipe': addRecipeSheet,
   'import-link': () => linkSheet(),
   'import-photo': pickPhoto,
@@ -636,7 +748,11 @@ function bind() {
     if (form.id === 'editor') return saveEditor(form);
     submits[form.dataset.actionSubmit]?.(form);
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.target.id === 'ed-newtag' && e.key === 'Enter') { e.preventDefault(); editorAddTag(); }
+  });
   document.addEventListener('input', (e) => {
+    if (e.target.id === 'ed-newtag') e.target.nextElementSibling.hidden = !e.target.value.trim();
     if (e.target.id === 'rq') { ui.search = e.target.value; document.getElementById('rgrid').innerHTML = recipeGrid(); }
   });
   window.addEventListener('hashchange', () => { if (sheetOpen()) closeSheet(true); render(); if (route().name === 'voorraad') refreshInfo(render); });
@@ -687,7 +803,16 @@ async function start() {
   refreshInfo(render);
   handleShare();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    // Nieuwe versie online gezet? Dan meteen ophalen en even melden.
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then((reg) => {
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {});
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) return;
+      if (route().name === 'bewerk' || sheetOpen()) toast('Er is een nieuwe versie van de app', { label: 'Vernieuwen', fn: () => location.reload() });
+      else location.reload();
+    });
   }
 }
 
