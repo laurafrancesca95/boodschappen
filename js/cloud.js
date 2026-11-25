@@ -7,6 +7,7 @@
 //   households/{code}/state/menu    { [yyyy-mm-dd]: [...] }
 //   households/{code}/state/list    { weekStart, checked, pantry, manual: {id: {..., o}} }
 //   households/{code}/state/pantry  { [id]: naam }
+//   households/{code}/state/tags    { list: [naam] }   eigen receptfilters
 //
 // Bij opslaan stuurt de app alleen wat er veranderd is (per veld). Vinkt de een "melk" af en de
 // ander tegelijk "brood", dan blijven allebei de vinkjes staan.
@@ -123,6 +124,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 function toRemote(c, data, prevRemote) {
   if (c === 'pantry') return Object.fromEntries((data || []).map((p) => [p.id, p.name]));
+  if (c === 'tags') return Array.isArray(data) ? { list: data } : {};
   if (c === 'list') {
     const prev = prevRemote?.manual || {};
     let max = Math.max(-1, ...Object.values(prev).map((m) => m.o ?? -1));
@@ -136,6 +138,7 @@ function toRemote(c, data, prevRemote) {
 function fromRemote(c, r) {
   r = r || {};
   if (c === 'pantry') return Object.entries(r).map(([id, name]) => ({ id, name }));
+  if (c === 'tags') return Array.isArray(r.list) ? r.list : null;
   if (c === 'list') {
     const manual = Object.values(r.manual || {}).sort((a, b) => (a.o - b.o) || String(a.id).localeCompare(b.id)).map(({ o, ...m }) => m);
     return { weekStart: r.weekStart ?? null, checked: r.checked || {}, pantry: r.pantry || {}, manual };
@@ -156,7 +159,7 @@ function diff(prev, next, path = [], out = []) {
   return out;
 }
 
-const STATE_DOCS = ['menu', 'list', 'pantry'];
+const STATE_DOCS = ['menu', 'list', 'pantry', 'tags'];
 
 export class CloudAdapter {
   constructor(householdId, local) {

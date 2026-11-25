@@ -14,16 +14,18 @@
 //   menu    : { [yyyy-mm-dd]: [{ id, recipeId?, note?, servings? }] }
 //   list    : { weekStart, checked: {key:true}, pantry: {key:'have'|'need'}, manual: [{id,name,qty,cat,checked}] }
 //   pantry  : [{ id, name }]
+//   tags    : [naam] (eigen receptfilters; null = nog de standaardlijst)
 //   meta    : { seeded, version }
 
 const DB_NAME = 'boodschappen';
-const COLLECTIONS = ['recipes', 'menu', 'list', 'pantry', 'meta'];
+const COLLECTIONS = ['recipes', 'menu', 'list', 'pantry', 'tags', 'meta'];
 
 export const DEFAULTS = () => ({
   recipes: {},
   menu: {},
   list: { weekStart: null, checked: {}, pantry: {}, manual: [] },
   pantry: [],
+  tags: null,
   meta: { seeded: false, version: 1 },
 });
 
