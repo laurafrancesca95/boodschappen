@@ -82,9 +82,9 @@ export function computeList() {
   const stapleItems = [];
   for (const s of staples) {
     const item = { key: 's:' + s.id, id: s.id, name: s.name, qtyText: s.qty || '', cat: s.cat || categorize(s.name), staple: true, checked: !!list.checked['s:' + s.id], recipes: [] };
-    item.stapleState = stapleState[s.id] === 'have' ? 'have' : 'need';
+    item.stapleState = stapleState[s.id] || null; // null = nog niet gecheckt (staat wel op de lijst)
     stapleItems.push(item);
-    if (item.stapleState === 'need') items.push(item);
+    if (item.stapleState !== 'have') items.push(item);
   }
   for (const m of list.manual) {
     items.push({ key: 'm:' + m.id, id: m.id, name: m.name, qtyText: m.qty || '', cat: m.cat || categorize(m.name), manual: true, checked: !!m.checked, recipes: [] });
@@ -101,7 +101,8 @@ export function computeList() {
     pantryItems,
     pantryOpen: pantryItems.filter((p) => !p.pantryState).length,
     stapleItems,
-    stapleNeed: stapleItems.filter((s) => s.stapleState === 'need').length,
+    stapleNeed: stapleItems.filter((s) => s.stapleState !== 'have').length,
+    stapleOpen: stapleItems.filter((s) => !s.stapleState).length,
   };
 }
 

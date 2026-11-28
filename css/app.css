@@ -262,6 +262,17 @@ textarea { resize: vertical; line-height: 1.5; }
 .seg button[aria-pressed="true"][data-v="have"] { background: #fff; color: var(--sage-ink); box-shadow: 0 1px 4px rgba(60,80,50,.15); }
 .seg button[aria-pressed="true"][data-v="need"] { background: var(--p); color: #fff; }
 
+/* Vakken klappen in als alles gecheckt is */
+.pantry.fold { gap: 0; }
+.pantry.fold[open] { gap: 4px; }
+.pantry.fold > summary { list-style: none; cursor: pointer; margin-bottom: 0; }
+.pantry.fold[open] > summary { margin-bottom: 4px; }
+.pantry.fold > summary::-webkit-details-marker { display: none; }
+.pantry.fold > summary > .i.xs { margin-left: 4px; transition: transform .15s; }
+.pantry.fold[open] > summary > .i.xs { transform: rotate(180deg); }
+/* standaard boodschap nog niet gecheckt: Nodig staat er zacht aan */
+.pi.dflt .seg button[data-v="need"] { background: color-mix(in srgb, var(--p) 16%, #fff); color: var(--p-deep); }
+
 /* Standaard boodschappen: zelfde vak als de voorraadkast, maar in blos */
 .pantry.staples { background: var(--t2); }
 .pantry.staples .ph-h { color: var(--p-deep); }
