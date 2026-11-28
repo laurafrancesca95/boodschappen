@@ -622,7 +622,7 @@ function viewStaples() {
   const items = store.state.staples;
   return `
   <header class="ah"><div><div class="eb">${items.length} ${items.length === 1 ? 'product' : 'producten'}</div><h1>Standaard boodschappen</h1></div></header>
-  <p class="lede">Dingen die je bijna elke week koopt, zoals melk, brood of fruit. Ze staan vanzelf op de boodschappenlijst. Is er nog genoeg, zet het daar dan op "In huis".</p>
+  <p class="lede">Dingen die je bijna elke week koopt, zoals melk, brood of fruit. Ze staan vanzelf op de boodschappenlijst. Is er nog genoeg, zet het daar dan op "In huis". Staat iets bij de verkeerde afdeling, kies dan zelf de goede.</p>
   <form class="addrow" data-action-submit="add-staple">
     <input id="add-staple" placeholder="Voeg toe, bijv. 2 pak melk" autocomplete="off" enterkeyhint="done">
     <button class="btn small" type="submit" aria-label="Toevoegen">${icon('plus', 'sm')}</button>
@@ -630,6 +630,9 @@ function viewStaples() {
   ${items.length ? `<div class="staple-list">${items.map((s) => `
     <div class="sitem">
       <span class="n">${esc(s.name)}${s.qty ? ` <small>${esc(s.qty)}</small>` : ''}</span>
+      <label class="catsel ${s.cat ? 'own' : ''}"><span class="sr">Afdeling voor ${esc(s.name)}</span>
+        <select data-change="staple-cat" data-id="${esc(s.id)}">${CATEGORIES.map((c) => `<option value="${c.id}" ${(s.cat || categorize(s.name)) === c.id ? 'selected' : ''}>${esc(c.label)}</option>`).join('')}</select>${icon('down', 'xs')}
+      </label>
       <button class="x" data-action="del-staple" data-id="${esc(s.id)}" aria-label="Verwijder ${esc(s.name)}">${icon('x', 'sm')}</button>
     </div>`).join('')}</div>`
     : `<div class="empty-state">${icon('repeat')}<b>Nog geen standaard boodschappen</b><p>Voeg hierboven toe wat je elke week nodig hebt.</p></div>`}
@@ -770,11 +773,13 @@ const actions = {
 const submits = {
   'add-item': (form) => { const inp = form.querySelector('input'); const v = inp.value.trim(); if (!v) return; addManual(v); inp.value = ''; inp.focus(); },
   'add-staple': (form) => {
-    const inp = form.querySelector('input'); const v = inp.value.trim(); if (!v) return;
+    const inp = form.querySelector('input'); let v = inp.value.trim(); if (!v) return;
+    const times = v.match(/\s+(\d+)\s*(x|keer|stuks?)$/i);
+    if (times) v = v.slice(0, times.index);
     const p = parseLine(v);
     if (p) {
       const name = p.name.charAt(0).toUpperCase() + p.name.slice(1);
-      const qty = p.qty != null || p.unit ? fmtQty(p.qty, p.unit) : '';
+      const qty = times ? `${times[1]}x` : p.qty != null || p.unit ? fmtQty(p.qty, p.unit) : '';
       if (store.state.staples.some((s) => s.name.toLowerCase() === name.toLowerCase())) toast(`${name} staat er al op`);
       else store.update('staples', (s) => { s.push({ id: uid(), name, qty }); });
     }
@@ -801,6 +806,16 @@ function bind() {
     e.preventDefault();
     if (form.id === 'editor') return saveEditor(form);
     submits[form.dataset.actionSubmit]?.(form);
+  });
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (el.dataset?.change === 'staple-cat') {
+      store.update('staples', (list) => {
+        const s = list.find((x) => x.id === el.dataset.id); if (!s) return;
+        s.cat = el.value === categorize(s.name) ? '' : el.value;
+      });
+      toast(`Komt nu bij ${CATEGORIES.find((c) => c.id === el.value)?.label || el.value}`);
+    }
   });
   document.addEventListener('keydown', (e) => {
     if (e.target.id === 'ed-newtag' && e.key === 'Enter') { e.preventDefault(); editorAddTag(); }

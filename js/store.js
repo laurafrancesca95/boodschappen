@@ -14,7 +14,7 @@
 //   menu    : { [yyyy-mm-dd]: [{ id, recipeId?, note?, servings? }] }
 //   list    : { weekStart, checked: {key:true}, pantry: {key:'have'|'need'}, staples: {id:'have'}, manual: [{id,name,qty,cat,checked}] }
 //   pantry  : [{ id, name }]
-//   staples : [{ id, name, qty }] (standaard boodschappen; staan elke week op de lijst tenzij 'In huis')
+//   staples : [{ id, name, qty, cat? }] (standaard boodschappen; staan elke week op de lijst tenzij 'In huis')
 //   tags    : [naam] (eigen receptfilters; null = nog de standaardlijst)
 //   meta    : { seeded, version }
 
