@@ -21,7 +21,7 @@ function allTags() {
 }
 const sameTag = (a, b) => a.toLocaleLowerCase('nl') === b.toLocaleLowerCase('nl');
 const cleanTag = (v) => { const t = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 30); return t && t.charAt(0).toLocaleUpperCase('nl') + t.slice(1); };
-const ui = { weekStart: startOfWeek(), search: '', tag: 'Alles', draft: null, wide: false };
+const ui = { fold: { pantry: false, staples: false }, weekStart: startOfWeek(), search: '', tag: 'Alles', draft: null, wide: false };
 const $view = () => document.getElementById('view');
 const $side = () => document.getElementById('side');
 const wideMQ = matchMedia('(min-width: 900px)');
@@ -549,6 +549,8 @@ async function saveEditor(form) {
 // ===================== BOODSCHAPPENLIJST =====================
 function viewList(_r, compact = false) {
   const L = computeList();
+  if (L.pantryOpen) ui.fold.pantry = false;
+  if (L.stapleOpen) ui.fold.staples = false;
   const pct = L.total ? Math.round((L.doneCount / L.total) * 100) : 0;
   const item = (it) => `
     <div class="it ${it.checked ? 'done' : ''}">
@@ -560,8 +562,8 @@ function viewList(_r, compact = false) {
       ${it.manual ? `<button class="x" data-action="del-manual" data-id="${it.id}" aria-label="Verwijder ${esc(it.name)}">${icon('x')}</button>` : ''}
     </div>`;
   const pantry = L.pantryItems.length ? `
-    <section class="pantry">
-      <div class="ph-h">${icon('jar', 'sm')}Eerst checken in de voorraadkast<small>${L.pantryOpen ? `${L.pantryOpen} nog checken` : 'alles gecheckt'}</small></div>
+    <details class="pantry fold" data-fold="pantry" ${L.pantryOpen || ui.fold.pantry ? 'open' : ''}>
+      <summary class="ph-h">${icon('jar', 'sm')}${L.pantryOpen ? 'Eerst checken in de voorraadkast' : 'Voorraadkast items'}<small>${L.pantryOpen ? `${L.pantryOpen} nog checken` : '(alles gecheckt)'}</small>${L.pantryOpen ? '' : icon('down', 'xs')}</summary>
       ${L.pantryItems.map((p) => `
         <div class="pi ${p.pantryState || 'open'}">
           <span class="n">${esc(p.name)}${p.qtyText ? ` <small>${esc(p.qtyText)}</small>` : ''}</span>
@@ -570,19 +572,19 @@ function viewList(_r, compact = false) {
             <button data-action="pantry-state" data-key="${esc(p.key)}" data-v="need" aria-pressed="${p.pantryState === 'need'}">${icon('cart', 'xs')}Nodig</button>
           </div>
         </div>`).join('')}
-    </section>` : '';
+    </details>` : '';
   const staples = L.stapleItems.length ? `
-    <section class="pantry staples">
-      <div class="ph-h">${icon('repeat', 'sm')}Standaard boodschappen<small>${L.stapleNeed} van ${L.stapleItems.length} op de lijst</small></div>
+    <details class="pantry staples fold" data-fold="staples" ${L.stapleOpen || ui.fold.staples ? 'open' : ''}>
+      <summary class="ph-h">${icon('repeat', 'sm')}${L.stapleOpen ? 'Standaard boodschappen' : 'Standaard items'}<small>${L.stapleOpen ? `${L.stapleOpen} nog checken` : '(alles gecheckt)'}</small>${L.stapleOpen ? '' : icon('down', 'xs')}</summary>
       ${L.stapleItems.map((s) => `
-        <div class="pi ${s.stapleState}">
+        <div class="pi ${s.stapleState || 'open dflt'}">
           <span class="n">${esc(s.name)}${s.qtyText ? ` <small>${esc(s.qtyText)}</small>` : ''}</span>
           <div class="seg" role="group" aria-label="${esc(s.name)}">
             <button data-action="staple-state" data-id="${esc(s.id)}" data-v="have" aria-pressed="${s.stapleState === 'have'}">${icon('check', 'xs')}In huis</button>
             <button data-action="staple-state" data-id="${esc(s.id)}" data-v="need" aria-pressed="${s.stapleState === 'need'}">${icon('cart', 'xs')}Nodig</button>
           </div>
         </div>`).join('')}
-    </section>` : '';
+    </details>` : '';
   const empty = !L.total && !L.pantryItems.length && !L.stapleItems.length;
   return `
   <header class="ah">
@@ -592,7 +594,7 @@ function viewList(_r, compact = false) {
     <input id="${compact ? 'add-item-side' : 'add-item'}" placeholder="Voeg iets toe, bijv. 2 pak melk" autocomplete="off" enterkeyhint="done">
     <button class="btn small" type="submit" aria-label="Toevoegen">${icon('plus', 'sm')}</button>
   </form>
-  ${L.total ? `<div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><small>${L.doneCount} van ${L.total} in de mand${L.pantryOpen ? ` · ${L.pantryOpen} voorraad nog checken` : ''}</small></div>` : ''}
+  ${L.total ? `<div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><small>${L.doneCount} van ${L.total} in de mand${L.pantryOpen + L.stapleOpen ? ` · ${L.pantryOpen + L.stapleOpen} nog checken` : ''}</small></div>` : ''}
   ${pantry}
   ${staples}
   ${L.groups.map((g) => `<div class="grp"><h5>${esc(g.label)}</h5>${g.items.map(item).join('')}</div>`).join('')}
@@ -734,7 +736,8 @@ const actions = {
   }),
   'staple-state': (el) => store.update('list', (l) => {
     l.staples = l.staples || {};
-    if (el.dataset.v === 'have') l.staples[el.dataset.id] = 'have'; else delete l.staples[el.dataset.id];
+    const k = el.dataset.id, v = el.dataset.v;
+    if (l.staples[k] === v) delete l.staples[k]; else l.staples[k] = v;
   }),
   'del-staple': (el) => {
     const i = store.state.staples.findIndex((s) => s.id === el.dataset.id);
@@ -809,6 +812,12 @@ function bind() {
     e.preventDefault();
     if (form.id === 'editor') return saveEditor(form);
     submits[form.dataset.actionSubmit]?.(form);
+  });
+  // ingeklapt vak (alles gecheckt) met de hand openen of dichtdoen: onthouden tot alles weer gecheckt is
+  // (het toggle-event vuurt ook bij elke nieuwe weergave, daarom op de klik zelf letten)
+  document.addEventListener('click', (e) => {
+    const d = e.target.closest('details[data-fold] > summary')?.parentElement;
+    if (d) ui.fold[d.dataset.fold] = !d.open;
   });
   document.addEventListener('change', (e) => {
     const el = e.target;
