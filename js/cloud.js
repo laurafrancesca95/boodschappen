@@ -7,7 +7,7 @@
 //   households/{code}/state/menu    { [yyyy-mm-dd]: [...] }
 //   households/{code}/state/list    { weekStart, checked, pantry, staples, manual: {id: {..., o}} }
 //   households/{code}/state/pantry  { [id]: naam }
-//   households/{code}/state/staples { [id]: { name, qty, o } }  standaard boodschappen
+//   households/{code}/state/staples { [id]: { name, qty, cat, o } }  (cat leeg = automatisch)  standaard boodschappen
 //   households/{code}/state/tags    { list: [naam] }   eigen receptfilters
 //
 // Bij opslaan stuurt de app alleen wat er veranderd is (per veld). Vinkt de een "melk" af en de
@@ -129,7 +129,7 @@ function toRemote(c, data, prevRemote) {
   if (c === 'staples') {
     const prev = prevRemote || {};
     let max = Math.max(-1, ...Object.values(prev).map((m) => m?.o ?? -1));
-    return Object.fromEntries((data || []).map((s) => [s.id, { name: s.name, qty: s.qty || '', o: prev[s.id]?.o ?? ++max }]));
+    return Object.fromEntries((data || []).map((s) => [s.id, { name: s.name, qty: s.qty || '', cat: s.cat || '', o: prev[s.id]?.o ?? ++max }]));
   }
   if (c === 'list') {
     const prev = prevRemote?.manual || {};
@@ -148,7 +148,7 @@ function fromRemote(c, r) {
   if (c === 'staples') {
     return Object.entries(r).filter(([, v]) => v && typeof v === 'object')
       .sort(([a, x], [b, y]) => ((x.o ?? 0) - (y.o ?? 0)) || a.localeCompare(b))
-      .map(([id, v]) => ({ id, name: v.name || '', qty: v.qty || '' }));
+      .map(([id, v]) => ({ id, name: v.name || '', qty: v.qty || '', cat: v.cat || '' }));
   }
   if (c === 'list') {
     const manual = Object.values(r.manual || {}).sort((a, b) => (a.o - b.o) || String(a.id).localeCompare(b.id)).map(({ o, ...m }) => m);

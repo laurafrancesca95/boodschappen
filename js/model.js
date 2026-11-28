@@ -81,7 +81,7 @@ export function computeList() {
   const stapleState = list.staples || {};
   const stapleItems = [];
   for (const s of staples) {
-    const item = { key: 's:' + s.id, id: s.id, name: s.name, qtyText: s.qty || '', cat: categorize(s.name), staple: true, checked: !!list.checked['s:' + s.id], recipes: [] };
+    const item = { key: 's:' + s.id, id: s.id, name: s.name, qtyText: s.qty || '', cat: s.cat || categorize(s.name), staple: true, checked: !!list.checked['s:' + s.id], recipes: [] };
     item.stapleState = stapleState[s.id] === 'have' ? 'have' : 'need';
     stapleItems.push(item);
     if (item.stapleState === 'need') items.push(item);

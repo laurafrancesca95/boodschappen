@@ -100,6 +100,10 @@ const PLURALS = {
   "tortilla's": 'tortilla', wraps: 'wrap', broodjes: 'broodje', pepers: 'peper', bieten: 'biet',
   prei: 'prei', preien: 'prei', komkommers: 'komkommer', radijsjes: 'radijs', champignons: 'champignon',
   sperziebonen: 'sperziebonen', bonen: 'bonen', kikkererwten: 'kikkererwten', linzen: 'linzen',
+  druiven: 'druif', aardbeien: 'aardbei', frambozen: 'framboos', bessen: 'bes', bosbessen: 'bosbes',
+  perziken: 'perzik', pruimen: 'pruim', abrikozen: 'abrikoos', mandarijnen: 'mandarijn', sinaasappels: 'sinaasappel',
+  sinaasappelen: 'sinaasappel', nectarines: 'nectarine', clementines: 'clementine', "kiwi's": 'kiwi', meloenen: 'meloen',
+  vijgen: 'vijg', ananassen: 'ananas', granaatappels: 'granaatappel',
 };
 
 const PANTRY_IGNORE_PREFIX = /^(verse|vers|gedroogde|gedroogd|gemalen|grof|fijne|fijn|biologische|bio|half|halve|grote|groot|kleine|klein|middelgrote|flinke|rijpe|zachte|koude|warme|extra|vierge|gesneden|gehakte|geraspte|geraspt|versgemalen|zwarte|witte)\s+/;
@@ -162,18 +166,22 @@ const CAT_WORDS = [
   ['houdbaar', ['pasta', 'spaghetti', 'penne', 'fusilli', 'macaroni', 'tagliatelle', 'lasagne', 'noedels', 'mie', 'rijst', 'couscous', 'bulgur', 'quinoa', 'linzen', 'kikkererwten', 'bonen in', 'kidneybonen', 'zwarte bonen', 'witte bonen', 'tomatenblokjes', 'tomatenpuree', 'passata', 'gepelde tomaten', 'kokosmelk', 'blik', 'tonijn', 'mais', 'olijven', 'kappertjes', 'noten', 'pijnboompitten', 'amandel', 'walnoot', 'cashew', 'pinda', 'zaden', 'rozijnen', 'havermout', 'muesli', 'cracker', 'tortilla', 'wrap', 'taco', 'chips', 'chocolade', 'koekjes', 'pindakaas', 'jam', 'hagelslag', 'zongedroogde', 'bouillonblok']],
   ['zuivel', ['melk', 'room', 'yoghurt', 'kwark', 'boter', 'kaas', 'feta', 'mozzarella', 'parmezaan', 'parmigiano', 'ricotta', 'mascarpone', 'burrata', 'halloumi', 'geitenkaas', 'crème fraîche', 'creme fraiche', 'zure room', 'ei', 'eieren', 'vla', 'skyr', 'roomkaas', 'philadelphia', 'gorgonzola', 'cheddar', 'gruyère', 'pecorino', 'margarine', 'kokosyoghurt', 'havermelk', 'sojamelk']],
   ['vlees', ['kip', 'gehakt', 'rund', 'varken', 'spek', 'ham', 'worst', 'chorizo', 'bacon', 'lam', 'biefstuk', 'shoarma', 'vis', 'zalm', 'kabeljauw', 'garnalen', 'mosselen', 'pangasius', 'tilapia', 'makreel', 'tofu', 'tempeh', 'vegetarische', 'vega ', 'kipfilet', 'kippendij', 'schnitzel', 'filet', 'salami', 'pancetta', 'prosciutto', 'rookworst', 'hamburger', 'falafel']],
-  ['brood', ['brood', 'stokbrood', 'bolletje', 'broodje', 'croissant', 'pita', 'naan', 'focaccia', 'ciabatta', 'bladerdeeg', 'pizzadeeg', 'deeg', 'beschuit', 'krentenbol']],
-  ['groente', ['ui', 'sjalot', 'knoflook', 'tomaat', 'tomaten', 'paprika', 'courgette', 'aubergine', 'wortel', 'winterpeen', 'prei', 'spinazie', 'sla', 'rucola', 'komkommer', 'broccoli', 'bloemkool', 'kool', 'spruit', 'boon', 'bonen', 'sperzie', 'erwt', 'peultjes', 'champignon', 'paddenstoel', 'aardappel', 'zoete aardappel', 'pompoen', 'biet', 'selderij', 'venkel', 'asperge', 'avocado', 'citroen', 'limoen', 'sinaasappel', 'appel', 'peer', 'banaan', 'aardbei', 'framboos', 'bes', 'druif', 'mango', 'ananas', 'meloen', 'gember', 'koriander', 'peterselie', 'basilicum', 'munt', 'bieslook', 'dille', 'rozemarijn', 'lente-ui', 'bosui', 'radijs', 'pastinaak', 'knolselderij', 'andijvie', 'boerenkool', 'zuurkool', 'taugé', 'paksoi', 'chilipeper', 'rode peper', 'groene peper', 'jalapeño', 'kers', 'granaatappel', 'kiwi', 'maïs', 'roerbak', 'groente', 'salade', 'veldsla', 'ijsbergsla', 'witlof', 'citroengras']],
+  ['brood', ['brood', 'stokbrood', 'bolletje', 'broodje', 'croissant', 'pita', 'focaccia', 'ciabatta', 'bladerdeeg', 'pizzadeeg', 'deeg', 'beschuit', 'krentenbol']],
+  ['groente', ['ui', 'sjalot', 'knoflook', 'tomaat', 'tomaten', 'paprika', 'courgette', 'aubergine', 'wortel', 'winterpeen', 'prei', 'spinazie', 'sla', 'rucola', 'komkommer', 'broccoli', 'bloemkool', 'kool', 'spruit', 'boon', 'bonen', 'sperzie', 'erwt', 'peultjes', 'champignon', 'paddenstoel', 'aardappel', 'zoete aardappel', 'pompoen', 'biet', 'selderij', 'venkel', 'asperge', 'avocado', 'citroen', 'limoen', 'sinaasappel', 'appel', 'peer', 'banaan', 'aardbei', 'framboos', 'bes', 'druif', 'mango', 'ananas', 'meloen', 'gember', 'koriander', 'peterselie', 'basilicum', 'munt', 'bieslook', 'dille', 'rozemarijn', 'lente-ui', 'bosui', 'radijs', 'pastinaak', 'knolselderij', 'andijvie', 'boerenkool', 'zuurkool', 'taugé', 'paksoi', 'chilipeper', 'rode peper', 'groene peper', 'jalapeño', 'kers', 'granaatappel', 'kiwi', 'mandarijn', 'clementine', 'nectarine', 'perzik', 'pruim', 'abrikoos', 'bosbes', 'grapefruit', 'pomelo', 'vijg', 'kaki', 'passievrucht', 'lychee', 'fruit', 'maïs', 'roerbak', 'groente', 'salade', 'veldsla', 'ijsbergsla', 'witlof', 'citroengras']],
   ['drinken', ['wijn', 'bier', 'sap', 'frisdrank', 'water', 'koffie', 'thee', 'cola', 'limonade', 'siroop']],
   ['huishouden', ['wc-papier', 'toiletpapier', 'keukenrol', 'afwasmiddel', 'wasmiddel', 'tandpasta', 'shampoo', 'zeep', 'luiers', 'vuilniszak', 'aluminiumfolie', 'bakpapier', 'vershoudfolie', 'tissues', 'schoonmaak', 'sponsjes', 'deodorant']],
 ];
 
 export function categorize(name) {
-  const n = ' ' + String(name || '').toLowerCase() + ' ';
+  // elk woord ook in enkelvoud meenemen, zodat "bananen" net zo goed werkt als "banaan"
+  const words = String(name || '').toLowerCase().replace(/[’`]/g, "'").split(/\s+/).filter(Boolean);
+  const n = ' ' + words.map((w) => { const s = PLURALS[w]; return s && s !== w ? `${w} ${s}` : w; }).join(' ') + ' ';
   // specifieke uitzonderingen eerst
   if (/bloemkool|rode peper|groene peper|chilipeper|verse? (peterselie|koriander|basilicum|munt|dille|bieslook|rozemarijn|tijm)/.test(n)) return 'groente';
   if (/kokosmelk|tomatenpuree|tomatenblokjes|passata|gepelde tomaten|zongedroogde tomaten/.test(n)) return 'houdbaar';
   if (/paprikapoeder|knoflookpoeder|uienpoeder|gemberpoeder/.test(n)) return 'kruiden';
+  if (/\snaan/.test(n)) return 'brood'; // niet "bananen"
+  if (/(sinaasappel|appel|fruit|tomaten|groente|multi)sap|jus d'orange/.test(n)) return 'drinken';
   for (const [cat, words] of CAT_WORDS) {
     for (const w of words) {
       const t = w.trim();

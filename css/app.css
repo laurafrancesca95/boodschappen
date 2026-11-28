@@ -273,6 +273,11 @@ textarea { resize: vertical; line-height: 1.5; }
 .sitem:last-child { border-bottom: 0; }
 .sitem .n { flex: 1; min-width: 0; font-weight: 500; }
 .sitem .n small { color: var(--mut); font-weight: 400; }
+.catsel { position: relative; display: inline-flex; align-items: center; flex: none; max-width: 46%; }
+.catsel select { appearance: none; -webkit-appearance: none; border: 1px solid var(--ln); background: var(--bg); color: var(--mut); border-radius: 999px; padding: 6px 28px 6px 12px; font-size: 13px; font-weight: 500; min-height: 34px; max-width: 100%; text-overflow: ellipsis; cursor: pointer; }
+.catsel.own select { background: var(--t2); border-color: var(--t1); color: var(--p-deep); }
+.catsel .i { position: absolute; right: 10px; pointer-events: none; color: var(--mut); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .sitem .x { width: 40px; height: 40px; display: grid; place-items: center; color: var(--mut); border-radius: 50%; }
 
 /* ---------- Voorraad ---------- */
