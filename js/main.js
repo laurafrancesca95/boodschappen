@@ -40,7 +40,7 @@ function render() {
   const keep = active && active.id ? { id: active.id, val: active.value, s: active.selectionStart, e: active.selectionEnd } : null;
   const view = $view();
   const scroll = view.scrollTop;
-  const views = { week: viewWeek, recepten: viewRecipes, recept: viewRecipe, bewerk: viewEditor, lijst: viewList, voorraad: viewPantry };
+  const views = { week: viewWeek, recepten: viewRecipes, recept: viewRecipe, bewerk: viewEditor, lijst: viewList, standaard: viewStaples, voorraad: viewPantry };
   const fn = views[r.name] || viewWeek;
   view.innerHTML = fn(r);
   view.dataset.route = r.name;
@@ -178,7 +178,7 @@ function makeList() {
   const ws = dateKey(ui.weekStart);
   const cur = store.state.list;
   if (cur.weekStart !== ws) {
-    store.update('list', (l) => ({ weekStart: ws, checked: {}, pantry: {}, manual: l.manual.filter((m) => !m.checked) }));
+    store.update('list', (l) => ({ weekStart: ws, checked: {}, pantry: {}, staples: {}, manual: l.manual.filter((m) => !m.checked) }));
   }
   if (!ui.wide) go('#/lijst'); else toast('De lijst gebruikt nu deze week');
 }
@@ -568,7 +568,19 @@ function viewList(_r, compact = false) {
           </div>
         </div>`).join('')}
     </section>` : '';
-  const empty = !L.total && !L.pantryItems.length;
+  const staples = L.stapleItems.length ? `
+    <section class="pantry staples">
+      <div class="ph-h">${icon('repeat', 'sm')}Standaard boodschappen<small>${L.stapleNeed} van ${L.stapleItems.length} op de lijst</small></div>
+      ${L.stapleItems.map((s) => `
+        <div class="pi ${s.stapleState}">
+          <span class="n">${esc(s.name)}${s.qtyText ? ` <small>${esc(s.qtyText)}</small>` : ''}</span>
+          <div class="seg" role="group" aria-label="${esc(s.name)}">
+            <button data-action="staple-state" data-id="${esc(s.id)}" data-v="have" aria-pressed="${s.stapleState === 'have'}">${icon('check', 'xs')}In huis</button>
+            <button data-action="staple-state" data-id="${esc(s.id)}" data-v="need" aria-pressed="${s.stapleState === 'need'}">${icon('cart', 'xs')}Nodig</button>
+          </div>
+        </div>`).join('')}
+    </section>` : '';
+  const empty = !L.total && !L.pantryItems.length && !L.stapleItems.length;
   return `
   <header class="ah">
     <div><button class="eb eb-btn" data-action="list-week">Voor ${esc(weekLabel(L.weekStart).replace(/ ·.*/, '').toLowerCase())} ${icon('down', 'xs')}</button><h1>Boodschappen</h1></div>
@@ -579,6 +591,7 @@ function viewList(_r, compact = false) {
   </form>
   ${L.total ? `<div class="prog"><div class="bar"><i style="width:${pct}%"></i></div><small>${L.doneCount} van ${L.total} in de mand${L.pantryOpen ? ` · ${L.pantryOpen} voorraad nog checken` : ''}</small></div>` : ''}
   ${pantry}
+  ${staples}
   ${L.groups.map((g) => `<div class="grp"><h5>${esc(g.label)}</h5>${g.items.map(item).join('')}</div>`).join('')}
   ${L.done.length ? `<details class="grp done-grp"><summary><h5>In de mand (${L.done.length})</h5>${icon('down', 'xs')}</summary>${L.done.map(item).join('')}</details>` : ''}
   ${empty ? `<div class="empty-state">${icon('cart')}<b>De lijst is nog leeg</b><p>${L.recipeCount ? '' : 'Kies recepten in het weekmenu, dan komen de ingrediënten hier vanzelf. '}Losse dingen voeg je hierboven toe.</p>${compact ? '' : `<a class="btn ghost" href="#/week">Naar weekmenu</a>`}</div>` : ''}
@@ -593,7 +606,7 @@ function listWeekSheet() {
   s.addEventListener('click', (e) => {
     const b = e.target.closest('[data-w]'); if (!b) return;
     closeSheet();
-    if (b.dataset.w !== cur) store.update('list', (l) => ({ weekStart: b.dataset.w, checked: {}, pantry: {}, manual: l.manual.filter((m) => !m.checked) }));
+    if (b.dataset.w !== cur) store.update('list', (l) => ({ weekStart: b.dataset.w, checked: {}, pantry: {}, staples: {}, manual: l.manual.filter((m) => !m.checked) }));
   });
 }
 
@@ -602,6 +615,25 @@ function addManual(text) {
   if (!p) return;
   const qty = p.qty != null || p.unit ? fmtQty(p.qty, p.unit) : '';
   store.update('list', (l) => { l.manual.push({ id: uid(), name: p.name.charAt(0).toUpperCase() + p.name.slice(1), qty, cat: categorize(p.name), checked: false }); });
+}
+
+// ===================== STANDAARD BOODSCHAPPEN =====================
+function viewStaples() {
+  const items = store.state.staples;
+  return `
+  <header class="ah"><div><div class="eb">${items.length} ${items.length === 1 ? 'product' : 'producten'}</div><h1>Standaard boodschappen</h1></div></header>
+  <p class="lede">Dingen die je bijna elke week koopt, zoals melk, brood of fruit. Ze staan vanzelf op de boodschappenlijst. Is er nog genoeg, zet het daar dan op "In huis".</p>
+  <form class="addrow" data-action-submit="add-staple">
+    <input id="add-staple" placeholder="Voeg toe, bijv. 2 pak melk" autocomplete="off" enterkeyhint="done">
+    <button class="btn small" type="submit" aria-label="Toevoegen">${icon('plus', 'sm')}</button>
+  </form>
+  ${items.length ? `<div class="staple-list">${items.map((s) => `
+    <div class="sitem">
+      <span class="n">${esc(s.name)}${s.qty ? ` <small>${esc(s.qty)}</small>` : ''}</span>
+      <button class="x" data-action="del-staple" data-id="${esc(s.id)}" aria-label="Verwijder ${esc(s.name)}">${icon('x', 'sm')}</button>
+    </div>`).join('')}</div>`
+    : `<div class="empty-state">${icon('repeat')}<b>Nog geen standaard boodschappen</b><p>Voeg hierboven toe wat je elke week nodig hebt.</p></div>`}
+  ${items.length ? `<a class="btn ghost wide" href="#/lijst">${icon('list', 'sm')}Naar de boodschappenlijst</a>` : ''}`;
 }
 
 // ===================== VOORRAAD =====================
@@ -694,11 +726,22 @@ const actions = {
     const k = el.dataset.key, v = el.dataset.v;
     if (l.pantry[k] === v) delete l.pantry[k]; else l.pantry[k] = v;
   }),
+  'staple-state': (el) => store.update('list', (l) => {
+    l.staples = l.staples || {};
+    if (el.dataset.v === 'have') l.staples[el.dataset.id] = 'have'; else delete l.staples[el.dataset.id];
+  }),
+  'del-staple': (el) => {
+    const i = store.state.staples.findIndex((s) => s.id === el.dataset.id);
+    if (i < 0) return;
+    const item = store.state.staples[i];
+    store.update('staples', (s) => s.filter((x) => x.id !== item.id));
+    toast(`${item.name} verwijderd`, { label: 'Ongedaan maken', fn: () => store.update('staples', (s) => { s.splice(Math.min(i, s.length), 0, item); }) });
+  },
   'focus-add': () => document.getElementById('add-item')?.focus(),
   'list-week': listWeekSheet,
   'clear-list': async () => {
-    if (!(await confirmSheet('Lijst opnieuw beginnen?', 'Alle vinkjes, voorraad-antwoorden en losse items worden gewist. De ingrediënten uit het weekmenu blijven staan.', 'Opnieuw beginnen'))) return;
-    store.update('list', (l) => ({ ...l, checked: {}, pantry: {}, manual: [] }));
+    if (!(await confirmSheet('Lijst opnieuw beginnen?', 'Alle vinkjes, voorraad-antwoorden en losse items worden gewist. De ingrediënten uit het weekmenu en de standaard boodschappen blijven staan.', 'Opnieuw beginnen'))) return;
+    store.update('list', (l) => ({ ...l, checked: {}, pantry: {}, staples: {}, manual: [] }));
   },
   'del-pantry': (el) => {
     const item = store.state.pantry.find((p) => p.id === el.dataset.id);
@@ -726,6 +769,17 @@ const actions = {
 
 const submits = {
   'add-item': (form) => { const inp = form.querySelector('input'); const v = inp.value.trim(); if (!v) return; addManual(v); inp.value = ''; inp.focus(); },
+  'add-staple': (form) => {
+    const inp = form.querySelector('input'); const v = inp.value.trim(); if (!v) return;
+    const p = parseLine(v);
+    if (p) {
+      const name = p.name.charAt(0).toUpperCase() + p.name.slice(1);
+      const qty = p.qty != null || p.unit ? fmtQty(p.qty, p.unit) : '';
+      if (store.state.staples.some((s) => s.name.toLowerCase() === name.toLowerCase())) toast(`${name} staat er al op`);
+      else store.update('staples', (s) => { s.push({ id: uid(), name, qty }); });
+    }
+    inp.value = ''; inp.focus();
+  },
   'add-pantry': (form) => {
     const inp = form.querySelector('input'); const v = inp.value.trim().toLowerCase(); if (!v) return;
     if (!store.state.pantry.some((p) => p.name === v)) store.update('pantry', (p) => { p.push({ id: uid(), name: v }); });
@@ -762,7 +816,7 @@ function bind() {
 }
 
 function shell() {
-  const tabs = [['week', 'cal', 'Weekmenu'], ['recepten', 'book', 'Recepten'], ['lijst', 'list', 'Lijst'], ['voorraad', 'jar', 'Voorraad']];
+  const tabs = [['week', 'cal', 'Weekmenu'], ['recepten', 'book', 'Recepten'], ['lijst', 'list', 'Lijst'], ['standaard', 'repeat', 'Standaard'], ['voorraad', 'jar', 'Voorraad']];
   const links = tabs.map(([t, ic, l]) => `<a href="#/${t}" data-tab="${t}"><span class="ic">${icon(ic)}</span>${l}</a>`).join('');
   document.getElementById('app').innerHTML = `
     <nav class="rail" aria-label="Menu"><div class="logo" aria-label="Boodschappen">${LOGO}</div>${links}</nav>

@@ -12,19 +12,21 @@
 // Collecties:
 //   recipes : { [id]: Recipe }
 //   menu    : { [yyyy-mm-dd]: [{ id, recipeId?, note?, servings? }] }
-//   list    : { weekStart, checked: {key:true}, pantry: {key:'have'|'need'}, manual: [{id,name,qty,cat,checked}] }
+//   list    : { weekStart, checked: {key:true}, pantry: {key:'have'|'need'}, staples: {id:'have'}, manual: [{id,name,qty,cat,checked}] }
 //   pantry  : [{ id, name }]
+//   staples : [{ id, name, qty }] (standaard boodschappen; staan elke week op de lijst tenzij 'In huis')
 //   tags    : [naam] (eigen receptfilters; null = nog de standaardlijst)
 //   meta    : { seeded, version }
 
 const DB_NAME = 'boodschappen';
-const COLLECTIONS = ['recipes', 'menu', 'list', 'pantry', 'tags', 'meta'];
+const COLLECTIONS = ['recipes', 'menu', 'list', 'pantry', 'staples', 'tags', 'meta'];
 
 export const DEFAULTS = () => ({
   recipes: {},
   menu: {},
-  list: { weekStart: null, checked: {}, pantry: {}, manual: [] },
+  list: { weekStart: null, checked: {}, pantry: {}, staples: {}, manual: [] },
   pantry: [],
+  staples: [],
   tags: null,
   meta: { seeded: false, version: 1 },
 });

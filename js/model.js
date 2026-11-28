@@ -49,7 +49,7 @@ export const fmtMinutes = (m) => (!m ? '' : m < 60 ? `${m} min` : `${Math.floor(
 // ---------- Boodschappenlijst ----------
 /** Bouwt de lijst voor de gekozen week uit het weekmenu + losse items. */
 export function computeList() {
-  const { menu, recipes, list, pantry } = store.state;
+  const { menu, recipes, list, pantry, staples = [] } = store.state;
   const ws = list.weekStart ? fromKey(list.weekStart) : startOfWeek();
   const lines = [];
   let recipeCount = 0;
@@ -78,6 +78,14 @@ export function computeList() {
       if (item.pantryState === 'need') items.push(item);
     } else items.push(item);
   }
+  const stapleState = list.staples || {};
+  const stapleItems = [];
+  for (const s of staples) {
+    const item = { key: 's:' + s.id, id: s.id, name: s.name, qtyText: s.qty || '', cat: categorize(s.name), staple: true, checked: !!list.checked['s:' + s.id], recipes: [] };
+    item.stapleState = stapleState[s.id] === 'have' ? 'have' : 'need';
+    stapleItems.push(item);
+    if (item.stapleState === 'need') items.push(item);
+  }
   for (const m of list.manual) {
     items.push({ key: 'm:' + m.id, id: m.id, name: m.name, qtyText: m.qty || '', cat: m.cat || categorize(m.name), manual: true, checked: !!m.checked, recipes: [] });
   }
@@ -92,6 +100,8 @@ export function computeList() {
     doneCount: done.length,
     pantryItems,
     pantryOpen: pantryItems.filter((p) => !p.pantryState).length,
+    stapleItems,
+    stapleNeed: stapleItems.filter((s) => s.stapleState === 'need').length,
   };
 }
 

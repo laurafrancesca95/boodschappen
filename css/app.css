@@ -46,8 +46,8 @@ p { margin: 0; }
   display: flex; justify-content: space-around; background: var(--surface); border-top: 1px solid var(--ln);
   padding: 8px 6px calc(10px + var(--safe-b));
 }
-.nav a, .rail a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--mut); text-decoration: none; font-weight: 500; min-width: 64px; }
-.nav a .ic, .rail a .ic { width: 56px; height: 32px; display: grid; place-items: center; border-radius: 999px; transition: background .15s; }
+.nav a, .rail a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12px; color: var(--mut); text-decoration: none; font-weight: 500; min-width: 58px; }
+.nav a .ic, .rail a .ic { width: 52px; height: 32px; display: grid; place-items: center; border-radius: 999px; transition: background .15s; }
 .nav a.on, .rail a.on { color: var(--p-deep); font-weight: 700; }
 .nav a.on .ic, .rail a.on .ic { background: var(--t1); }
 
@@ -261,6 +261,19 @@ textarea { resize: vertical; line-height: 1.5; }
 .seg button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 11px; border-radius: 999px; font-size: 13px; font-weight: 600; color: var(--mut); min-height: 36px; }
 .seg button[aria-pressed="true"][data-v="have"] { background: #fff; color: var(--sage-ink); box-shadow: 0 1px 4px rgba(60,80,50,.15); }
 .seg button[aria-pressed="true"][data-v="need"] { background: var(--p); color: #fff; }
+
+/* Standaard boodschappen: zelfde vak als de voorraadkast, maar in blos */
+.pantry.staples { background: var(--t2); }
+.pantry.staples .ph-h { color: var(--p-deep); }
+.pantry.staples .ph-h small { color: var(--mut); }
+.pi.need .n { color: var(--ink); }
+.staples .pi.have .n { color: var(--mut); text-decoration: line-through; }
+.staple-list { display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 4px 6px 4px 16px; }
+.sitem { display: flex; align-items: center; gap: 10px; min-height: 52px; border-bottom: 1px solid var(--ln); }
+.sitem:last-child { border-bottom: 0; }
+.sitem .n { flex: 1; min-width: 0; font-weight: 500; }
+.sitem .n small { color: var(--mut); font-weight: 400; }
+.sitem .x { width: 40px; height: 40px; display: grid; place-items: center; color: var(--mut); border-radius: 50%; }
 
 /* ---------- Voorraad ---------- */
 .pantry-chips { display: flex; flex-wrap: wrap; gap: 8px; }

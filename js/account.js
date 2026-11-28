@@ -83,6 +83,7 @@ async function moveLocalData(d) {
     if (d.menu) await store.update('menu', () => d.menu);
     if (d.list) await store.update('list', (l) => ({ ...l, ...d.list }));
     if (d.pantry) await store.update('pantry', () => d.pantry);
+    if (d.staples?.length) await store.update('staples', () => d.staples);
   } else {
     await seed(store);
   }
@@ -94,6 +95,9 @@ async function offerMerge(d, hid) {
   const pHave = new Set(store.state.pantry.map((p) => p.name));
   const pExtra = (d.pantry || []).filter((p) => !pHave.has(p.name));
   ls.set(MERGED_KEY(hid), '1');
+  const sHave = new Set(store.state.staples.map((s) => s.name.toLowerCase()));
+  const sExtra = (d.staples || []).filter((s) => !sHave.has(s.name.toLowerCase()));
+  if (sExtra.length) store.update('staples', (s) => [...s, ...sExtra]);
   if (!extra.length) {
     if (pExtra.length) store.update('pantry', (p) => [...p, ...pExtra]);
     return;
