@@ -12,10 +12,12 @@ import { cloud, startCloud, cloudCard, cloudActions, refreshInfo } from './accou
 
 const TAGS = ['Snel', 'Vega', 'Soep', 'Oven', 'Pasta', 'Salade', 'Vis', 'Kids'];
 /** De receptfilters van het huishouden. Zolang niemand ze heeft aangepast: de standaardlijst + wat recepten al hebben. */
+/** Altijd op alfabetische volgorde, ook nieuw toegevoegde filters. */
 function allTags() {
-  if (Array.isArray(store.state.tags)) return store.state.tags;
+  const byName = (a, b) => a.localeCompare(b, 'nl', { sensitivity: 'base' });
+  if (Array.isArray(store.state.tags)) return [...store.state.tags].sort(byName);
   const used = new Set(Object.values(store.state.recipes).flatMap((r) => r.tags || []));
-  return [...TAGS, ...[...used].filter((t) => !TAGS.includes(t)).sort((a, b) => a.localeCompare(b, 'nl'))];
+  return [...new Set([...TAGS, ...used])].sort(byName);
 }
 const sameTag = (a, b) => a.toLocaleLowerCase('nl') === b.toLocaleLowerCase('nl');
 const cleanTag = (v) => { const t = String(v || '').replace(/\s+/g, ' ').trim().slice(0, 30); return t && t.charAt(0).toLocaleUpperCase('nl') + t.slice(1); };
@@ -433,7 +435,8 @@ function editorAddTag() {
   const have = [...box.querySelectorAll('input[name=tag]')].find((x) => sameTag(x.value, t));
   if (have) have.checked = true;
   else {
-    inp.parentElement.insertAdjacentHTML('beforebegin', tagToggle(new Set([t]))(t));
+    const next = [...box.querySelectorAll('label.chip')].find((l) => l.querySelector('input').value.localeCompare(t, 'nl', { sensitivity: 'base' }) > 0);
+    (next || inp.parentElement).insertAdjacentHTML('beforebegin', tagToggle(new Set([t]))(t));
     if (!allTags().some((x) => sameTag(x, t))) store.update('tags', () => [...allTags(), t]);
   }
   inp.value = '';
