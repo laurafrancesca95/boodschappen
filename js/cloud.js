@@ -5,8 +5,9 @@
 //   households/{code}               { members: [uid], emails: {uid: e-mail}, createdAt }
 //   households/{code}/recipes/{id}  één recept per document
 //   households/{code}/state/menu    { [yyyy-mm-dd]: [...] }
-//   households/{code}/state/list    { weekStart, checked, pantry, manual: {id: {..., o}} }
+//   households/{code}/state/list    { weekStart, checked, pantry, staples, manual: {id: {..., o}} }
 //   households/{code}/state/pantry  { [id]: naam }
+//   households/{code}/state/staples { [id]: { name, qty, o } }  standaard boodschappen
 //   households/{code}/state/tags    { list: [naam] }   eigen receptfilters
 //
 // Bij opslaan stuurt de app alleen wat er veranderd is (per veld). Vinkt de een "melk" af en de
@@ -92,7 +93,7 @@ export async function createHousehold(user) {
   const id = newCode();
   await F.setDoc(F.doc(db, 'households', id), { members: [user.uid], emails: { [user.uid]: user.email || '' }, createdAt: F.serverTimestamp() });
   const b = F.writeBatch(db);
-  for (const s of ['menu', 'list', 'pantry']) b.set(F.doc(db, 'households', id, 'state', s), s === 'list' ? { weekStart: null, checked: {}, pantry: {}, manual: {} } : {});
+  for (const s of ['menu', 'list', 'pantry', 'staples']) b.set(F.doc(db, 'households', id, 'state', s), s === 'list' ? { weekStart: null, checked: {}, pantry: {}, staples: {}, manual: {} } : {});
   b.set(F.doc(db, 'users', user.uid), { householdId: id, email: user.email || '' });
   await b.commit();
   return id;
@@ -125,12 +126,17 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 function toRemote(c, data, prevRemote) {
   if (c === 'pantry') return Object.fromEntries((data || []).map((p) => [p.id, p.name]));
   if (c === 'tags') return Array.isArray(data) ? { list: data } : {};
+  if (c === 'staples') {
+    const prev = prevRemote || {};
+    let max = Math.max(-1, ...Object.values(prev).map((m) => m?.o ?? -1));
+    return Object.fromEntries((data || []).map((s) => [s.id, { name: s.name, qty: s.qty || '', o: prev[s.id]?.o ?? ++max }]));
+  }
   if (c === 'list') {
     const prev = prevRemote?.manual || {};
     let max = Math.max(-1, ...Object.values(prev).map((m) => m.o ?? -1));
     const manual = {};
     for (const m of data.manual || []) manual[m.id] = { ...m, o: prev[m.id]?.o ?? ++max };
-    return { weekStart: data.weekStart ?? null, checked: data.checked || {}, pantry: data.pantry || {}, manual };
+    return { weekStart: data.weekStart ?? null, checked: data.checked || {}, pantry: data.pantry || {}, staples: data.staples || {}, manual };
   }
   return data || {};
 }
@@ -139,9 +145,14 @@ function fromRemote(c, r) {
   r = r || {};
   if (c === 'pantry') return Object.entries(r).map(([id, name]) => ({ id, name }));
   if (c === 'tags') return Array.isArray(r.list) ? r.list : null;
+  if (c === 'staples') {
+    return Object.entries(r).filter(([, v]) => v && typeof v === 'object')
+      .sort(([a, x], [b, y]) => ((x.o ?? 0) - (y.o ?? 0)) || a.localeCompare(b))
+      .map(([id, v]) => ({ id, name: v.name || '', qty: v.qty || '' }));
+  }
   if (c === 'list') {
     const manual = Object.values(r.manual || {}).sort((a, b) => (a.o - b.o) || String(a.id).localeCompare(b.id)).map(({ o, ...m }) => m);
-    return { weekStart: r.weekStart ?? null, checked: r.checked || {}, pantry: r.pantry || {}, manual };
+    return { weekStart: r.weekStart ?? null, checked: r.checked || {}, pantry: r.pantry || {}, staples: r.staples || {}, manual };
   }
   return r;
 }
@@ -159,7 +170,7 @@ function diff(prev, next, path = [], out = []) {
   return out;
 }
 
-const STATE_DOCS = ['menu', 'list', 'pantry', 'tags'];
+const STATE_DOCS = ['menu', 'list', 'pantry', 'staples', 'tags'];
 
 export class CloudAdapter {
   constructor(householdId, local) {
